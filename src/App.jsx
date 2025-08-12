@@ -10,6 +10,7 @@ export default function App() {
   // สถานะเรียนคำศัพท์
   const [learningIndex, setLearningIndex] = useState(0);
   const [isLearningDone, setIsLearningDone] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
 
   // แบบฝึกเติมคำ
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -51,6 +52,7 @@ export default function App() {
     }
   };
 
+  // สร้างคำที่มีช่องว่าง (_) แทนตัวอักษรสุ่ม
   const createBlank = (word) => {
     if (word.length <= 1) return word;
     const indexToRemove = Math.floor(Math.random() * word.length);
@@ -66,7 +68,8 @@ export default function App() {
     setUserAnswer("");
     setFeedback(null);
     setShowResult(false);
-    setBlankedWord(createBlank(category.words[0]));
+    setShowTranslation(false);
+    setBlankedWord(createBlank(category.words[0].en));
     setShowScoreboard(false);
   };
 
@@ -74,6 +77,7 @@ export default function App() {
   const handleNextLearning = () => {
     if (learningIndex < selectedCategory.words.length - 1) {
       setLearningIndex(learningIndex + 1);
+      setShowTranslation(false);
     } else {
       setIsLearningDone(true);
     }
@@ -83,6 +87,7 @@ export default function App() {
   const handlePrevLearning = () => {
     if (learningIndex > 0) {
       setLearningIndex(learningIndex - 1);
+      setShowTranslation(false);
     }
   };
 
@@ -92,13 +97,14 @@ export default function App() {
     setUserAnswer("");
     setFeedback(null);
     setShowResult(false);
-    setBlankedWord(createBlank(selectedCategory.words[0]));
+    setShowTranslation(false);
+    setBlankedWord(createBlank(selectedCategory.words[0].en));
   };
 
   const handleAnswerSubmit = () => {
     if (userAnswer.trim() === "") return;
 
-    const correctWord = selectedCategory.words[currentWordIndex];
+    const correctWord = selectedCategory.words[currentWordIndex].en;
     const isCorrect = userAnswer.toLowerCase() === correctWord.toLowerCase();
 
     if (isCorrect) {
@@ -113,14 +119,23 @@ export default function App() {
       if (currentWordIndex < selectedCategory.words.length - 1) {
         const nextIndex = currentWordIndex + 1;
         setCurrentWordIndex(nextIndex);
-        setBlankedWord(createBlank(selectedCategory.words[nextIndex]));
+        setBlankedWord(createBlank(selectedCategory.words[nextIndex].en));
         setUserAnswer("");
         setFeedback(null);
         setShowResult(false);
+        setShowTranslation(false);
       } else {
-        alert(`จบแบบฝึก! คะแนนของคุณคือ ${isCorrect ? score + 1 : score} / ${selectedCategory.words.length}`);
+        alert(
+          `จบแบบฝึก! คะแนนของคุณคือ ${
+            isCorrect ? score + 1 : score
+          } / ${selectedCategory.words.length}`
+        );
         // บันทึกคะแนนลงบอร์ด
-        saveScoreToBoard(selectedCategory.name, isCorrect ? score + 1 : score, selectedCategory.words.length);
+        saveScoreToBoard(
+          selectedCategory.name,
+          isCorrect ? score + 1 : score,
+          selectedCategory.words.length
+        );
 
         setSelectedCategory(null);
         setLearningIndex(0);
@@ -130,6 +145,7 @@ export default function App() {
         setUserAnswer("");
         setFeedback(null);
         setShowResult(false);
+        setShowTranslation(false);
       }
     }, 2000);
   };
@@ -148,9 +164,13 @@ export default function App() {
       <div className="app-container">
         <header>
           <h2>บอร์ดคะแนน</h2>
-          <button className="logout-btn" onClick={handleLogout}>ออกจากระบบ</button>
+          <button className="logout-btn" onClick={handleLogout}>
+            ออกจากระบบ
+          </button>
         </header>
-        <button onClick={() => setShowScoreboard(false)} className="back-btn">กลับ</button>
+        <button onClick={() => setShowScoreboard(false)} className="back-btn">
+          กลับ
+        </button>
 
         {entries.length === 0 ? (
           <p>ยังไม่มีคะแนนบันทึกไว้</p>
@@ -168,7 +188,9 @@ export default function App() {
                 <tr key={cat}>
                   <td>{cat}</td>
                   <td>{data.username}</td>
-                  <td>{data.score} / {data.total}</td>
+                  <td>
+                    {data.score} / {data.total}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -182,17 +204,22 @@ export default function App() {
     <div className="app-container">
       <header>
         <h2>สวัสดี, {username}!</h2>
-        <button className="logout-btn" onClick={handleLogout}>ออกจากระบบ</button>
+        <button className="logout-btn" onClick={handleLogout}>
+          ออกจากระบบ
+        </button>
       </header>
 
       {!selectedCategory && (
         <>
           <h3>เลือกหมวดหมู่คำศัพท์</h3>
-          <button className="show-scoreboard-btn" onClick={() => setShowScoreboard(true)}>
+          <button
+            className="show-scoreboard-btn"
+            onClick={() => setShowScoreboard(true)}
+          >
             ดูบอร์ดคะแนน
           </button>
           <div className="categories-list">
-            {categoriesData.map(cat => (
+            {categoriesData.map((cat) => (
               <button
                 key={cat.name}
                 onClick={() => handleSelectCategory(cat)}
@@ -208,19 +235,40 @@ export default function App() {
       {selectedCategory && !isLearningDone && (
         <>
           <h3>เรียนคำศัพท์หมวด: {selectedCategory.name}</h3>
-          <p>คำที่ {learningIndex + 1} / {selectedCategory.words.length}</p>
-          <div className="flashcard">
-            {selectedCategory.words[learningIndex]}
+          <p>
+            คำที่ {learningIndex + 1} / {selectedCategory.words.length}
+          </p>
+          <div
+            className="flashcard"
+            onClick={() => setShowTranslation(!showTranslation)}
+            style={{ cursor: "pointer" }}
+            title="คลิกเพื่อสลับคำแปล"
+          >
+            {showTranslation
+              ? selectedCategory.words[learningIndex].th
+              : selectedCategory.words[learningIndex].en}
           </div>
 
           <div className="learning-buttons">
-            <button onClick={handlePrevLearning} disabled={learningIndex === 0} className="prev-btn">ย้อนกลับ</button>
+            <button
+              onClick={handlePrevLearning}
+              disabled={learningIndex === 0}
+              className="prev-btn"
+            >
+              ย้อนกลับ
+            </button>
             <button onClick={handleNextLearning} className="next-btn">
-              {learningIndex < selectedCategory.words.length - 1 ? "คำถัดไป" : "เรียนจบ"}
+              {learningIndex < selectedCategory.words.length - 1
+                ? "คำถัดไป"
+                : "เรียนจบ"}
             </button>
           </div>
 
-          <button onClick={() => setSelectedCategory(null)} className="back-btn" style={{marginTop:"10px"}}>
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className="back-btn"
+            style={{ marginTop: "10px" }}
+          >
             กลับไปเลือกหมวด
           </button>
         </>
@@ -229,7 +277,9 @@ export default function App() {
       {selectedCategory && isLearningDone && (
         <>
           <h3>แบบฝึกเติมคำหมวด: {selectedCategory.name}</h3>
-          <p>คำที่ {currentWordIndex + 1} / {selectedCategory.words.length}</p>
+          <p>
+            คำที่ {currentWordIndex + 1} / {selectedCategory.words.length}
+          </p>
           <div className="flashcard">
             <span className="question">{blankedWord}</span>
           </div>
@@ -257,12 +307,18 @@ export default function App() {
           </button>
 
           {feedback && (
-            <p className={`feedback ${feedback.startsWith("ถูก") ? "correct" : "wrong"}`}>
+            <p
+              className={`feedback ${
+                feedback.startsWith("ถูก") ? "correct" : "wrong"
+              }`}
+            >
               {feedback}
             </p>
           )}
 
-          <p className="score">คะแนน: {score} / {selectedCategory.words.length}</p>
+          <p className="score">
+            คะแนน: {score} / {selectedCategory.words.length}
+          </p>
 
           <button
             onClick={startExercise}
